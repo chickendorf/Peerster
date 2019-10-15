@@ -47,7 +47,11 @@ func main() {
 		"run the web server",
 	)
 
-  //var antiEntropy = flag.Int("antiEntropy", 10, "timeout in seconds for anti-entropy (defualt 10s)")
+  var antiEntropy = flag.Int(
+    "antiEntropy",
+    10,
+    "timeout in seconds for anti-entropy (defualt 10s)",
+  )
 
 
   flag.Parse()
@@ -63,7 +67,7 @@ func main() {
   fmt.Println("peerList:", *peersList);
   fmt.Println("simple:", *simple);*/
 
-  var mainGossip = G.InitGossiper(*name, *uiPort, *gossipAddr, peerList, *simple)
+  var mainGossip = G.InitGossiper(*name, *uiPort, *gossipAddr, peerList, *simple, *antiEntropy)
 
   if *server {
     fmt.Println("Run web")

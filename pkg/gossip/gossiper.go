@@ -9,6 +9,7 @@ import (
 	S "../status"
 	M "../messages"
 	"math/rand"
+	"time"
 )
 
 //#Move
@@ -26,6 +27,7 @@ type Gossiper struct {
 	messages []string
 	status []S.PeerStatus
 	countID uint32
+	antiE int
 }
 
 func InitGossiper(
@@ -34,6 +36,7 @@ func InitGossiper(
 	gossipAddr string,
 	peerList []string,
 	simpleMode bool,
+	aE int,
 ) *Gossiper {
   var n = name
 
@@ -54,10 +57,47 @@ func InitGossiper(
 									peers : peerList,
 									simple: simpleMode,
 									countID : 1,
-									rumorDatabase: make(map[string][]P.GossipPacket)};
+									rumorDatabase: make(map[string][]P.GossipPacket),
+									antiE: aE};
+
+
 	go ret.ListenGossip();
 	return &ret;
 
+}
+
+func (g *Gossiper) checkStatusPeriod(){
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		_ = <-ticker.C
+		go g.checkACK()
+	}
+}
+
+func (g *Gossiper) checkACK(){
+	for _, ps := range g.status{
+		haveToSend := 0
+		for i, gp := range g.rumorDatabase[ps.Identifier]{
+			haveToSend = i
+			if gp.Rumor.ID == ps.NextID - 1{
+				haveToSend = -1
+				break
+			}
+		}
+
+		if haveToSend != -1{
+			addr := g.getNextPeers()
+			if len(addr) >0{
+				peerA, _ := net.ResolveUDPAddr(
+					"udp4",
+					addr[0],
+				)
+				g.sendGPacket(g.rumorDatabase[ps.Identifier][haveToSend],peerA)
+			}
+
+		}
+	}
 }
 
 func (g *Gossiper) ListenClient(){
